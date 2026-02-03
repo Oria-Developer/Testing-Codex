@@ -220,10 +220,12 @@ const closeEditModal = () => {
 const renderSession = () => {
   if (state.session) {
     elements.sessionUser.textContent = `Signed in as ${state.session.displayName}`;
+    elements.logoutBtn.textContent = "Sign out";
     elements.authSection.style.display = "none";
     elements.dashboardSection.style.display = "flex";
   } else {
     elements.sessionUser.textContent = "Not signed in";
+    elements.logoutBtn.textContent = "Login";
     elements.authSection.style.display = "grid";
     elements.dashboardSection.style.display = "none";
   }
@@ -412,6 +414,19 @@ const logoutUser = () => {
   state.session = null;
   persist("session");
   renderAll();
+};
+
+const handleSessionAction = () => {
+  if (state.session) {
+    logoutUser();
+    return;
+  }
+  if (elements.authOverlay) {
+    elements.authOverlay.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  if (elements.loginForm?.username) {
+    elements.loginForm.username.focus();
+  }
 };
 
 const addCall = (formData) => {
@@ -939,7 +954,7 @@ const initialize = () => {
   }
 
   if (elements.logoutBtn) {
-    elements.logoutBtn.addEventListener("click", () => logoutUser());
+    elements.logoutBtn.addEventListener("click", handleSessionAction);
   }
 
   if (elements.callForm) {
