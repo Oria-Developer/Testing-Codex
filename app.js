@@ -22,7 +22,11 @@ const elements = {
   availableUnitsCount: document.getElementById("availableUnitsCount"),
   openIncidentsCount: document.getElementById("openIncidentsCount"),
   dispatchersOnline: document.getElementById("dispatchersOnline"),
-  toast: document.getElementById("toast")
+  toast: document.getElementById("toast"),
+  editModal: document.getElementById("editModal"),
+  editCallForm: document.getElementById("editCallForm"),
+  closeModalBtn: document.getElementById("closeModalBtn"),
+  cancelModalBtn: document.getElementById("cancelModalBtn")
 };
 
 const state = {
@@ -30,7 +34,8 @@ const state = {
   session: null,
   calls: [],
   units: [],
-  logs: []
+  logs: [],
+  editCallId: null
 };
 
 const loadData = () => {
@@ -53,6 +58,14 @@ const loadData = () => {
   if (!state.logs || state.logs.length === 0) {
     state.logs = [];
     persist("logs");
+  }
+
+  if (state.session) {
+    const validSession = state.users.some((user) => user.id === state.session.id);
+    if (!validSession) {
+      state.session = null;
+      persist("session");
+    }
   }
 };
 
@@ -98,6 +111,21 @@ const showToast = (message) => {
   setTimeout(() => {
     elements.toast.classList.remove("show");
   }, 2500);
+};
+
+const openEditModal = (call) => {
+  state.editCallId = call.id;
+  elements.editCallForm.location.value = call.location;
+  elements.editCallForm.description.value = call.description;
+  elements.editModal.classList.add("show");
+  elements.editModal.setAttribute("aria-hidden", "false");
+};
+
+const closeEditModal = () => {
+  state.editCallId = null;
+  elements.editModal.classList.remove("show");
+  elements.editModal.setAttribute("aria-hidden", "true");
+  elements.editCallForm.reset();
 };
 
 const renderSession = () => {
@@ -332,23 +360,7 @@ const updateCall = (callId) => {
   if (!call) {
     return;
   }
-
-  const location = window.prompt("Update location:", call.location);
-  if (location === null) {
-    return;
-  }
-  const description = window.prompt("Update description:", call.description);
-  if (description === null) {
-    return;
-  }
-
-  call.location = location.trim() || call.location;
-  call.description = description.trim() || call.description;
-  call.updatedAt = new Date().toISOString();
-  persist("calls");
-  renderAll();
-  logActivity(`Call ${call.type} updated by dispatcher.`);
-  showToast("Call updated.");
+  openEditModal(call);
 };
 
 const assignUnitToCall = (callId, unitId) => {
@@ -367,6 +379,26 @@ const assignUnitToCall = (callId, unitId) => {
   renderAll();
   logActivity(`${unit.name} assigned to ${call.type} at ${call.location}.`);
   showToast("Unit assigned.");
+};
+
+const saveCallUpdates = (event) => {
+  event.preventDefault();
+  const call = state.calls.find((entry) => entry.id === state.editCallId);
+  if (!call) {
+    closeEditModal();
+    return;
+  }
+
+  const formData = new FormData(elements.editCallForm);
+  const payload = Object.fromEntries(formData.entries());
+  call.location = payload.location.trim() || call.location;
+  call.description = payload.description.trim() || call.description;
+  call.updatedAt = new Date().toISOString();
+  persist("calls");
+  renderAll();
+  logActivity(`Call ${call.type} updated by dispatcher.`);
+  showToast("Call updated.");
+  closeEditModal();
 };
 
 const handleCallTableClick = (event) => {
@@ -438,6 +470,14 @@ const initialize = () => {
 
   elements.callsTable.addEventListener("click", handleCallTableClick);
   elements.callsTable.addEventListener("change", handleAssignSelect);
+  elements.editCallForm.addEventListener("submit", saveCallUpdates);
+  elements.closeModalBtn.addEventListener("click", closeEditModal);
+  elements.cancelModalBtn.addEventListener("click", closeEditModal);
+  elements.editModal.addEventListener("click", (event) => {
+    if (event.target === elements.editModal) {
+      closeEditModal();
+    }
+  });
 };
 
 initialize();

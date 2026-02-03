@@ -12,6 +12,7 @@
       <div>
         <h1>PulsePoint 911 Roleplay Console</h1>
         <p class="subtitle">Fast, organized dispatching for immersive roleplay.</p>
+        <span class="version-pill">Version 1</span>
       </div>
       <div class="session" id="sessionInfo">
         <span class="session-user" id="sessionUser">Not signed in</span>
@@ -147,11 +148,37 @@
           </div>
           <div class="log" id="activityLog"></div>
         </section>
+
+        <footer class="footer">
+          <span>PulsePoint 911 Roleplay Console • Version 1 • Offline-ready</span>
+        </footer>
       </section>
     </main>
   </div>
 
   <div class="toast" id="toast"></div>
+  <div class="modal" id="editModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+      <div class="modal-header">
+        <h2 id="editTitle">Update Call</h2>
+        <button class="ghost" type="button" id="closeModalBtn">Close</button>
+      </div>
+      <form id="editCallForm" class="stack">
+        <label>
+          Location
+          <input type="text" name="location" required />
+        </label>
+        <label>
+          Description
+          <textarea name="description" rows="3" required></textarea>
+        </label>
+        <div class="actions">
+          <button type="submit">Save Updates</button>
+          <button type="button" class="ghost" id="cancelModalBtn">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
   <script src="app.js"></script>
 </body>
 </html>
