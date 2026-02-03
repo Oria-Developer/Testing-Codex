@@ -34,6 +34,10 @@
           <button class="ghost toggle-btn" type="button" data-collapse="auth">Close</button>
         </div>
         <div class="panel-body" id="panel-auth">
+          <div class="lock-banner">
+            <strong>Access Restricted</strong>
+            <span>Sign in to unlock the full CAD console.</span>
+          </div>
           <section class="auth" id="authSection">
             <div class="card auth-card">
               <h2>Sign in</h2>
@@ -70,6 +74,40 @@
               <p class="helper">Passwords are stored locally for roleplay use only.</p>
             </div>
           </section>
+        </div>
+      </section>
+
+      <section class="panel collapsible" data-panel="session" data-default-open="true">
+        <div class="panel-header">
+          <div>
+            <h2>Session Controls</h2>
+            <p>Select your roleplay server and manage session history.</p>
+          </div>
+          <button class="ghost toggle-btn" type="button" data-collapse="session">Close</button>
+        </div>
+        <div class="panel-body" id="panel-session">
+          <div class="session-controls">
+            <div class="session-card">
+              <h3>Roleplay Server</h3>
+              <label>
+                Active Server
+                <select id="serverSelect"></select>
+              </label>
+              <form id="serverForm" class="stack">
+                <label>
+                  Add New Server
+                  <input type="text" name="serverName" placeholder="Citywide RP" required />
+                </label>
+                <button type="submit">Add Server</button>
+              </form>
+            </div>
+            <div class="session-card">
+              <h3>Session Timeline</h3>
+              <p><strong>Current Session:</strong> <span id="sessionTimer">00:00:00</span></p>
+              <p><strong>Last Session:</strong> <span id="lastSessionInfo">None yet</span></p>
+              <button type="button" class="ghost" id="importSessionBtn">Import Last Session</button>
+            </div>
+          </div>
         </div>
       </section>
 

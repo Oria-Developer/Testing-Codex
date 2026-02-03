@@ -7,7 +7,10 @@ const STORAGE_KEYS = {
   settings: "pp_settings",
   scenes: "pp_scenes",
   announcements: "pp_announcements",
-  panels: "pp_panels"
+  panels: "pp_panels",
+  servers: "pp_servers",
+  lastSession: "pp_last_session",
+  activeServer: "pp_active_server"
 };
 
 const elements = {
@@ -44,7 +47,12 @@ const elements = {
   announcementForm: document.getElementById("announcementForm"),
   announcementList: document.getElementById("announcementList"),
   toolbarSection: document.querySelector(".toolbar"),
-  toolbarLock: document.getElementById("toolbarLock")
+  toolbarLock: document.getElementById("toolbarLock"),
+  serverSelect: document.getElementById("serverSelect"),
+  serverForm: document.getElementById("serverForm"),
+  importSessionBtn: document.getElementById("importSessionBtn"),
+  sessionTimer: document.getElementById("sessionTimer"),
+  lastSessionInfo: document.getElementById("lastSessionInfo")
 };
 
 const state = {
@@ -62,6 +70,11 @@ const state = {
   scenes: [],
   announcements: [],
   panels: {},
+  servers: [],
+  activeServer: null,
+  lastSession: null,
+  sessionStart: null,
+  sessionTimerInterval: null,
   timer: {
     seconds: 0,
     running: false,
@@ -115,12 +128,29 @@ const loadData = () => {
     persist("panels");
   }
 
+  if (!state.servers || state.servers.length === 0) {
+    state.servers = ["Metro RP", "County Dispatch", "Night Ops"];
+    persist("servers");
+  }
+
+  if (!state.activeServer) {
+    state.activeServer = state.servers[0];
+    persist("activeServer");
+  }
+
+  if (!state.lastSession) {
+    state.lastSession = null;
+  }
+
   if (state.session) {
     const validSession = state.users.some((user) => user.id === state.session.id);
     if (!validSession) {
       state.session = null;
       persist("session");
     }
+  }
+  if (state.session && !state.sessionStart) {
+    state.sessionStart = Date.now();
   }
 };
 
@@ -191,10 +221,15 @@ const renderSession = () => {
     elements.sessionUser.textContent = `Signed in as ${state.session.displayName}`;
     elements.authSection.style.display = "none";
     elements.dashboardSection.style.display = "flex";
+    document.body.classList.remove("cad-locked");
   } else {
     elements.sessionUser.textContent = "Not signed in";
     elements.authSection.style.display = "grid";
     elements.dashboardSection.style.display = "none";
+    document.body.classList.add("cad-locked");
+    if (elements.sessionTimer) {
+      elements.sessionTimer.textContent = "00:00:00";
+    }
   }
 };
 
@@ -323,6 +358,8 @@ const renderAll = () => {
   renderSettings();
   renderTimer();
   setToolbarAccess();
+  renderServers();
+  renderLastSession();
 };
 
 const registerUser = (formData) => {
@@ -361,17 +398,38 @@ const loginUser = (formData) => {
     displayName: user.displayName,
     username: user.username
   };
+  state.sessionStart = Date.now();
   persist("session");
   renderAll();
   logActivity(`${user.displayName} signed in.`);
+  startSessionClock();
 };
 
 const logoutUser = () => {
   if (!state.session) {
     return;
   }
+  const durationSec = state.sessionStart
+    ? Math.floor((Date.now() - state.sessionStart) / 1000)
+    : 0;
+  state.lastSession = {
+    endedAt: new Date().toISOString(),
+    durationSec,
+    server: state.activeServer,
+    snapshot: {
+      calls: state.calls,
+      units: state.units,
+      logs: state.logs,
+      scenes: state.scenes,
+      announcements: state.announcements,
+      settings: state.settings
+    }
+  };
+  persist("lastSession");
+  stopSessionClock();
   logActivity(`${state.session.displayName} signed out.`);
   state.session = null;
+  state.sessionStart = null;
   persist("session");
   renderAll();
 };
@@ -515,6 +573,64 @@ const renderTimer = () => {
   }
   if (elements.pauseTimerBtn) {
     elements.pauseTimerBtn.disabled = !state.timer.running;
+  }
+};
+
+const renderServers = () => {
+  if (!elements.serverSelect) {
+    return;
+  }
+  elements.serverSelect.innerHTML = state.servers
+    .map(
+      (server) =>
+        `<option value="${server}" ${server === state.activeServer ? "selected" : ""}>${server}</option>`
+    )
+    .join("");
+};
+
+const renderLastSession = () => {
+  if (!elements.lastSessionInfo) {
+    return;
+  }
+  if (!state.lastSession) {
+    elements.lastSessionInfo.textContent = "None yet";
+    return;
+  }
+  const duration = formatDuration(state.lastSession.durationSec || 0);
+  const ended = new Date(state.lastSession.endedAt).toLocaleString();
+  elements.lastSessionInfo.textContent = `${ended} • ${duration} • ${state.lastSession.server}`;
+};
+
+const formatDuration = (seconds) => {
+  const hrs = String(Math.floor(seconds / 3600)).padStart(2, "0");
+  const mins = String(Math.floor((seconds % 3600) / 60)).padStart(2, "0");
+  const secs = String(seconds % 60).padStart(2, "0");
+  return `${hrs}:${mins}:${secs}`;
+};
+
+const startSessionClock = () => {
+  if (!state.sessionStart) {
+    state.sessionStart = Date.now();
+  }
+  if (!elements.sessionTimer) {
+    return;
+  }
+  elements.sessionTimer.textContent = "00:00:00";
+  if (state.sessionTimerInterval) {
+    window.clearInterval(state.sessionTimerInterval);
+  }
+  state.sessionTimerInterval = window.setInterval(() => {
+    const elapsed = Math.floor((Date.now() - state.sessionStart) / 1000);
+    elements.sessionTimer.textContent = formatDuration(elapsed);
+  }, 1000);
+  const initialElapsed = Math.floor((Date.now() - state.sessionStart) / 1000);
+  elements.sessionTimer.textContent = formatDuration(initialElapsed);
+};
+
+const stopSessionClock = () => {
+  if (state.sessionTimerInterval) {
+    window.clearInterval(state.sessionTimerInterval);
+    state.sessionTimerInterval = null;
   }
 };
 
@@ -720,6 +836,53 @@ const setToolbarAccess = () => {
   });
 };
 
+const importLastSession = () => {
+  if (!state.session) {
+    showToast("Please sign in to import a session.");
+    return;
+  }
+  if (!state.lastSession || !state.lastSession.snapshot) {
+    showToast("No previous session to import.");
+    return;
+  }
+  state.calls = state.lastSession.snapshot.calls || [];
+  state.units = state.lastSession.snapshot.units || [];
+  state.logs = state.lastSession.snapshot.logs || [];
+  state.scenes = state.lastSession.snapshot.scenes || [];
+  state.announcements = state.lastSession.snapshot.announcements || [];
+  state.settings = state.lastSession.snapshot.settings || state.settings;
+  if (state.lastSession.server) {
+    state.activeServer = state.lastSession.server;
+    persist("activeServer");
+  }
+  persist("calls");
+  persist("units");
+  persist("logs");
+  persist("scenes");
+  persist("announcements");
+  persist("settings");
+  renderAll();
+  showToast("Last session imported.");
+};
+
+const addServer = (formData) => {
+  const payload = Object.fromEntries(formData.entries());
+  const name = payload.serverName.trim();
+  if (!name) {
+    return;
+  }
+  if (state.servers.includes(name)) {
+    showToast("Server already exists.");
+    return;
+  }
+  state.servers.push(name);
+  state.activeServer = name;
+  persist("servers");
+  persist("activeServer");
+  renderServers();
+  showToast("Server added.");
+};
+
 const saveCallUpdates = (event) => {
   event.preventDefault();
   const call = state.calls.find((entry) => entry.id === state.editCallId);
@@ -773,6 +936,9 @@ const initialize = () => {
   loadData();
   initPanels();
   renderAll();
+  if (state.session) {
+    startSessionClock();
+  }
 
   if (elements.loginForm) {
     elements.loginForm.addEventListener("submit", (event) => {
@@ -910,6 +1076,27 @@ const initialize = () => {
         acknowledgeAnnouncement(announcementId);
       }
     });
+  }
+
+  if (elements.serverSelect) {
+    elements.serverSelect.addEventListener("change", (event) => {
+      state.activeServer = event.target.value;
+      persist("activeServer");
+      renderServers();
+      showToast(`Active server set to ${state.activeServer}.`);
+    });
+  }
+
+  if (elements.serverForm) {
+    elements.serverForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      addServer(new FormData(event.target));
+      event.target.reset();
+    });
+  }
+
+  if (elements.importSessionBtn) {
+    elements.importSessionBtn.addEventListener("click", importLastSession);
   }
 };
 
