@@ -42,7 +42,9 @@ const elements = {
   seedCallBtn: document.getElementById("seedCallBtn"),
   settingsForm: document.getElementById("settingsForm"),
   announcementForm: document.getElementById("announcementForm"),
-  announcementList: document.getElementById("announcementList")
+  announcementList: document.getElementById("announcementList"),
+  toolbarSection: document.querySelector(".toolbar"),
+  toolbarLock: document.getElementById("toolbarLock")
 };
 
 const state = {
@@ -320,6 +322,7 @@ const renderAll = () => {
   renderAnnouncements();
   renderSettings();
   renderTimer();
+  setToolbarAccess();
 };
 
 const registerUser = (formData) => {
@@ -501,14 +504,25 @@ const renderAnnouncements = () => {
 };
 
 const renderTimer = () => {
+  if (!elements.sceneTimerDisplay) {
+    return;
+  }
   const minutes = String(Math.floor(state.timer.seconds / 60)).padStart(2, "0");
   const seconds = String(state.timer.seconds % 60).padStart(2, "0");
   elements.sceneTimerDisplay.textContent = `${minutes}:${seconds}`;
-  elements.startTimerBtn.disabled = state.timer.running;
-  elements.pauseTimerBtn.disabled = !state.timer.running;
+  if (elements.startTimerBtn) {
+    elements.startTimerBtn.disabled = state.timer.running;
+  }
+  if (elements.pauseTimerBtn) {
+    elements.pauseTimerBtn.disabled = !state.timer.running;
+  }
 };
 
 const startTimer = () => {
+  if (!state.session) {
+    showToast("Please sign in to use the toolbar.");
+    return;
+  }
   if (state.timer.running) {
     return;
   }
@@ -521,6 +535,10 @@ const startTimer = () => {
 };
 
 const pauseTimer = () => {
+  if (!state.session) {
+    showToast("Please sign in to use the toolbar.");
+    return;
+  }
   if (!state.timer.running) {
     return;
   }
@@ -531,12 +549,20 @@ const pauseTimer = () => {
 };
 
 const resetTimer = () => {
+  if (!state.session) {
+    showToast("Please sign in to use the toolbar.");
+    return;
+  }
   pauseTimer();
   state.timer.seconds = 0;
   renderTimer();
 };
 
 const addScene = (formData) => {
+  if (!state.session) {
+    showToast("Please sign in to use the toolbar.");
+    return;
+  }
   const payload = Object.fromEntries(formData.entries());
   const scene = {
     id: createId(),
@@ -551,6 +577,10 @@ const addScene = (formData) => {
 };
 
 const addAnnouncement = (formData) => {
+  if (!state.session) {
+    showToast("Please sign in to post announcements.");
+    return;
+  }
   const payload = Object.fromEntries(formData.entries());
   const announcement = {
     id: createId(),
@@ -565,6 +595,10 @@ const addAnnouncement = (formData) => {
 };
 
 const acknowledgeAnnouncement = (announcementId) => {
+  if (!state.session) {
+    showToast("Please sign in to manage announcements.");
+    return;
+  }
   state.announcements = state.announcements.filter((item) => item.id !== announcementId);
   persist("announcements");
   renderAnnouncements();
@@ -594,6 +628,10 @@ const saveSettings = (event) => {
 };
 
 const clearLogs = () => {
+  if (!state.session) {
+    showToast("Please sign in to use the toolbar.");
+    return;
+  }
   state.logs = [];
   persist("logs");
   renderLogs();
@@ -601,6 +639,10 @@ const clearLogs = () => {
 };
 
 const seedDemoCall = () => {
+  if (!state.session) {
+    showToast("Please sign in to use the toolbar.");
+    return;
+  }
   const call = createCall({
     location: "101 Ocean Ave",
     type: "Disturbance",
@@ -649,6 +691,32 @@ const initPanels = () => {
       button.textContent = "Open";
     }
     button.addEventListener("click", () => togglePanel(panelId));
+  });
+
+  document.querySelectorAll("[data-collapse]").forEach((button) => {
+    if (button.classList.contains("toggle-btn")) {
+      return;
+    }
+    const panelId = button.dataset.collapse;
+    button.addEventListener("click", () => togglePanel(panelId));
+  });
+};
+
+const setToolbarAccess = () => {
+  if (!elements.toolbarSection || !elements.toolbarLock) {
+    return;
+  }
+  const isAuthed = Boolean(state.session);
+  elements.toolbarSection.classList.toggle("toolbar-locked", !isAuthed);
+  elements.toolbarLock.setAttribute("aria-hidden", isAuthed ? "true" : "false");
+  const controls = elements.toolbarSection.querySelectorAll(
+    ".panel-body button, .panel-body input, .panel-body select, .panel-body textarea"
+  );
+  controls.forEach((control) => {
+    if (control.closest(".toolbar-lock")) {
+      return;
+    }
+    control.disabled = !isAuthed;
   });
 };
 
