@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PulsePoint CAD - 911 Roleplay Console</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="topbar">
+      <div>
+        <h1>PulsePoint CAD</h1>
+        <p class="subtitle">Dispatch, manage scenes, and track activity in real time.</p>
+        <span class="version-pill">Version 1</span>
+      </div>
+      <div class="nav-actions">
+        <a class="ghost" href="home.html">Home</a>
+        <a class="ghost" href="cad.html">CAD Console</a>
+      </div>
+      <div class="session" id="sessionInfo">
+        <span class="session-user" id="sessionUser">Not signed in</span>
+        <button class="ghost" id="logoutBtn" type="button">Sign out</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="panel collapsible" data-panel="auth" data-default-open="true">
+        <div class="panel-header">
+          <div>
+            <h2>Dispatcher Access</h2>
+            <p>Sign in or create a dispatcher profile.</p>
+          </div>
+          <button class="ghost toggle-btn" type="button" data-collapse="auth">Close</button>
+        </div>
+        <div class="panel-body" id="panel-auth">
+          <section class="auth" id="authSection">
+            <div class="card auth-card">
+              <h2>Sign in</h2>
+              <form id="loginForm">
+                <label>
+                  Username
+                  <input type="text" name="username" required autocomplete="username" />
+                </label>
+                <label>
+                  Password
+                  <input type="password" name="password" required autocomplete="current-password" />
+                </label>
+                <button type="submit">Login</button>
+              </form>
+              <p class="helper">Need an account? Use the registration panel.</p>
+            </div>
+            <div class="card auth-card">
+              <h2>Create account</h2>
+              <form id="registerForm">
+                <label>
+                  Display name
+                  <input type="text" name="displayName" required />
+                </label>
+                <label>
+                  Username
+                  <input type="text" name="username" required autocomplete="username" />
+                </label>
+                <label>
+                  Password
+                  <input type="password" name="password" required autocomplete="new-password" />
+                </label>
+                <button type="submit">Register</button>
+              </form>
+              <p class="helper">Passwords are stored locally for roleplay use only.</p>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="panel toolbar collapsible" data-panel="toolbar">
+        <div class="panel-header">
+          <div>
+            <h2>Dispatch Toolbar</h2>
+            <p>Timers, scenes, and quick actions for live roleplay.</p>
+          </div>
+          <button class="ghost toggle-btn" type="button" data-collapse="toolbar">Open</button>
+        </div>
+        <div class="panel-body" id="panel-toolbar">
+          <div class="toolbar-lock" id="toolbarLock">
+            <p>Sign in to unlock dispatch toolbar tools.</p>
+            <button type="button" class="ghost" data-collapse="auth">Open Dispatcher Access</button>
+          </div>
+          <div class="toolbar-grid">
+            <div class="toolbar-card">
+              <h3>Scene Timer</h3>
+              <div class="timer-display" id="sceneTimerDisplay">00:00</div>
+              <div class="actions">
+                <button type="button" id="startTimerBtn">Start</button>
+                <button type="button" class="ghost" id="pauseTimerBtn">Pause</button>
+                <button type="button" class="ghost" id="resetTimerBtn">Reset</button>
+              </div>
+            </div>
+            <div class="toolbar-card">
+              <h3>Scene Presets</h3>
+              <form id="sceneForm" class="stack">
+                <label>
+                  Scene Name
+                  <input type="text" name="sceneName" required />
+                </label>
+                <label>
+                  Notes
+                  <input type="text" name="sceneNotes" required />
+                </label>
+                <button type="submit">Add Scene</button>
+              </form>
+              <div class="list" id="sceneList"></div>
+            </div>
+            <div class="toolbar-card">
+              <h3>Quick Actions</h3>
+              <div class="quick-actions">
+                <button type="button" id="logStatusBtn">Log Status Check</button>
+                <button type="button" class="ghost" id="clearLogBtn">Clear Activity Log</button>
+                <button type="button" class="ghost" id="seedCallBtn">Seed Demo Call</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel collapsible" data-panel="overview" data-default-open="true">
+        <div class="panel-header">
+          <div>
+            <h2>Overview</h2>
+            <p>Live stats on active calls and available units.</p>
+          </div>
+          <button class="ghost toggle-btn" type="button" data-collapse="overview">Close</button>
+        </div>
+        <div class="panel-body" id="panel-overview">
+          <div class="cards">
+            <div class="card stat">
+              <h3>Active Calls</h3>
+              <p id="activeCallsCount">0</p>
+            </div>
+            <div class="card stat">
+              <h3>Available Units</h3>
+              <p id="availableUnitsCount">0</p>
+            </div>
+            <div class="card stat">
+              <h3>Open Incidents</h3>
+              <p id="openIncidentsCount">0</p>
+            </div>
+            <div class="card stat">
+              <h3>Dispatchers Online</h3>
+              <p id="dispatchersOnline">1</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="dashboard" id="dashboardSection">
+        <div class="grid">
+          <section class="panel collapsible" data-panel="calls" data-default-open="true">
+            <div class="panel-header">
+              <div>
+                <h2>Create Emergency Call</h2>
+                <p>Capture critical details quickly.</p>
+              </div>
+              <button class="ghost toggle-btn" type="button" data-collapse="calls">Close</button>
+            </div>
+            <div class="panel-body" id="panel-calls">
+              <form id="callForm" class="stack">
+                <label>
+                  Location
+                  <input type="text" name="location" required />
+                </label>
+                <label>
+                  Call Type
+                  <input type="text" name="type" required />
+                </label>
+                <label>
+                  Priority
+                  <select name="priority" required>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                  </select>
+                </label>
+                <label>
+                  Description
+                  <textarea name="description" rows="3" required></textarea>
+                </label>
+                <button type="submit">Create Call</button>
+              </form>
+            </div>
+          </section>
+
+          <section class="panel collapsible" data-panel="units">
+            <div class="panel-header">
+              <div>
+                <h2>Units & Availability</h2>
+                <p>Manage responders in real time.</p>
+              </div>
+              <button class="ghost toggle-btn" type="button" data-collapse="units">Open</button>
+            </div>
+            <div class="panel-body" id="panel-units">
+              <form id="unitForm" class="stack">
+                <label>
+                  Unit Name
+                  <input type="text" name="name" required />
+                </label>
+                <label>
+                  Unit Type
+                  <select name="type" required>
+                    <option value="Police">Police</option>
+                    <option value="Fire">Fire</option>
+                    <option value="EMS">EMS</option>
+                  </select>
+                </label>
+                <button type="submit">Add Unit</button>
+              </form>
+              <div class="list" id="unitsList"></div>
+            </div>
+          </section>
+        </div>
+
+        <section class="panel collapsible" data-panel="dispatch" data-default-open="true">
+          <div class="panel-header">
+            <div>
+              <h2>Dispatch Board</h2>
+              <p>Monitor active calls and assign units.</p>
+            </div>
+            <button class="ghost toggle-btn" type="button" data-collapse="dispatch">Close</button>
+          </div>
+          <div class="panel-body" id="panel-dispatch">
+            <div class="table" id="callsTable"></div>
+          </div>
+        </section>
+
+        <section class="panel collapsible" data-panel="activity">
+          <div class="panel-header">
+            <div>
+              <h2>Live Activity Log</h2>
+              <p>Every action recorded for quick reference.</p>
+            </div>
+            <button class="ghost toggle-btn" type="button" data-collapse="activity">Open</button>
+          </div>
+          <div class="panel-body" id="panel-activity">
+            <div class="log" id="activityLog"></div>
+          </div>
+        </section>
+
+        <section class="panel collapsible" data-panel="announcements">
+          <div class="panel-header">
+            <div>
+              <h2>Announcement Board</h2>
+              <p>Push updates to active units and dispatchers.</p>
+            </div>
+            <button class="ghost toggle-btn" type="button" data-collapse="announcements">Open</button>
+          </div>
+          <div class="panel-body" id="panel-announcements">
+            <form id="announcementForm" class="stack">
+              <label>
+                Title
+                <input type="text" name="title" required />
+              </label>
+              <label>
+                Message
+                <textarea name="message" rows="2" required></textarea>
+              </label>
+              <button type="submit">Post Announcement</button>
+            </form>
+            <div class="list" id="announcementList"></div>
+          </div>
+        </section>
+
+        <section class="panel collapsible" data-panel="settings">
+          <div class="panel-header">
+            <div>
+              <h2>Settings</h2>
+              <p>Customize priorities, notifications, and log retention.</p>
+            </div>
+            <button class="ghost toggle-btn" type="button" data-collapse="settings">Open</button>
+          </div>
+          <div class="panel-body" id="panel-settings">
+            <form id="settingsForm" class="stack">
+              <label>
+                Default Priority
+                <select name="defaultPriority" required>
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                </select>
+              </label>
+              <label>
+                Activity Log Limit
+                <input type="number" name="logLimit" min="10" max="200" required />
+              </label>
+              <label class="toggle">
+                <input type="checkbox" name="toastEnabled" />
+                <span>Enable toast notifications</span>
+              </label>
+              <button type="submit">Save Settings</button>
+            </form>
+          </div>
+        </section>
+
+        <footer class="footer">
+          <span>PulsePoint 911 Roleplay Console • Version 1 • Offline-ready</span>
+        </footer>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <div class="modal" id="editModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+      <div class="modal-header">
+        <h2 id="editTitle">Update Call</h2>
+        <button class="ghost" type="button" id="closeModalBtn">Close</button>
+      </div>
+      <form id="editCallForm" class="stack">
+        <label>
+          Location
+          <input type="text" name="location" required />
+        </label>
+        <label>
+          Description
+          <textarea name="description" rows="3" required></textarea>
+        </label>
+        <div class="actions">
+          <button type="submit">Save Updates</button>
+          <button type="button" class="ghost" id="cancelModalBtn">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
