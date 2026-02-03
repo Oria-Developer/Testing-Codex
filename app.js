@@ -5,7 +5,9 @@ const STORAGE_KEYS = {
   units: "pp_units",
   logs: "pp_logs",
   settings: "pp_settings",
-  scenes: "pp_scenes"
+  scenes: "pp_scenes",
+  announcements: "pp_announcements",
+  panels: "pp_panels"
 };
 
 const elements = {
@@ -38,7 +40,9 @@ const elements = {
   logStatusBtn: document.getElementById("logStatusBtn"),
   clearLogBtn: document.getElementById("clearLogBtn"),
   seedCallBtn: document.getElementById("seedCallBtn"),
-  settingsForm: document.getElementById("settingsForm")
+  settingsForm: document.getElementById("settingsForm"),
+  announcementForm: document.getElementById("announcementForm"),
+  announcementList: document.getElementById("announcementList")
 };
 
 const state = {
@@ -54,6 +58,8 @@ const state = {
     toastEnabled: true
   },
   scenes: [],
+  announcements: [],
+  panels: {},
   timer: {
     seconds: 0,
     running: false,
@@ -95,6 +101,16 @@ const loadData = () => {
   if (!state.scenes) {
     state.scenes = [];
     persist("scenes");
+  }
+
+  if (!state.announcements) {
+    state.announcements = [];
+    persist("announcements");
+  }
+
+  if (!state.panels) {
+    state.panels = {};
+    persist("panels");
   }
 
   if (state.session) {
@@ -301,6 +317,7 @@ const renderAll = () => {
   renderUnits();
   renderLogs();
   renderScenes();
+  renderAnnouncements();
   renderSettings();
   renderTimer();
 };
@@ -460,6 +477,29 @@ const renderSettings = () => {
   }
 };
 
+const renderAnnouncements = () => {
+  if (!elements.announcementList) {
+    return;
+  }
+  if (!state.announcements.length) {
+    elements.announcementList.innerHTML = "<div class=\"helper\">No announcements yet.</div>";
+    return;
+  }
+  elements.announcementList.innerHTML = state.announcements
+    .map(
+      (announcement) => `
+      <div class="unit">
+        <div>
+          <strong>${announcement.title}</strong>
+          <span>${announcement.message}</span>
+        </div>
+        <button type="button" class="ghost" data-announcement="${announcement.id}">Acknowledge</button>
+      </div>
+    `
+    )
+    .join("");
+};
+
 const renderTimer = () => {
   const minutes = String(Math.floor(state.timer.seconds / 60)).padStart(2, "0");
   const seconds = String(state.timer.seconds % 60).padStart(2, "0");
@@ -510,6 +550,27 @@ const addScene = (formData) => {
   showToast("Scene added.");
 };
 
+const addAnnouncement = (formData) => {
+  const payload = Object.fromEntries(formData.entries());
+  const announcement = {
+    id: createId(),
+    title: payload.title,
+    message: payload.message
+  };
+  state.announcements.unshift(announcement);
+  persist("announcements");
+  renderAnnouncements();
+  logActivity(`Announcement posted: ${announcement.title}.`);
+  showToast("Announcement posted.");
+};
+
+const acknowledgeAnnouncement = (announcementId) => {
+  state.announcements = state.announcements.filter((item) => item.id !== announcementId);
+  persist("announcements");
+  renderAnnouncements();
+  showToast("Announcement acknowledged.");
+};
+
 const activateScene = (sceneId) => {
   const scene = state.scenes.find((item) => item.id === sceneId);
   if (!scene) {
@@ -552,6 +613,43 @@ const seedDemoCall = () => {
   renderStats();
   logActivity("Demo call seeded by dispatcher.");
   showToast("Demo call created.");
+};
+
+const togglePanel = (panelId) => {
+  const panelBody = document.getElementById(`panel-${panelId}`);
+  if (!panelBody) {
+    return;
+  }
+  const isOpen = panelBody.classList.toggle("open");
+  state.panels[panelId] = isOpen;
+  persist("panels");
+  const button = document.querySelector(`[data-collapse=\"${panelId}\"]`);
+  if (button) {
+    button.textContent = isOpen ? "Close" : "Open";
+  }
+};
+
+const initPanels = () => {
+  document.querySelectorAll(".toggle-btn").forEach((button) => {
+    const panelId = button.dataset.collapse;
+    const panelBody = document.getElementById(`panel-${panelId}`);
+    if (!panelBody) {
+      return;
+    }
+    const defaultOpen = document
+      .querySelector(`[data-panel=\"${panelId}\"]`)
+      ?.getAttribute("data-default-open") === "true";
+    const savedState = state.panels[panelId];
+    const shouldOpen = typeof savedState === "boolean" ? savedState : defaultOpen;
+    if (shouldOpen) {
+      panelBody.classList.add("open");
+      button.textContent = "Close";
+    } else {
+      panelBody.classList.remove("open");
+      button.textContent = "Open";
+    }
+    button.addEventListener("click", () => togglePanel(panelId));
+  });
 };
 
 const saveCallUpdates = (event) => {
@@ -605,77 +703,146 @@ const handleAssignSelect = (event) => {
 
 const initialize = () => {
   loadData();
+  initPanels();
   renderAll();
 
-  elements.loginForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    loginUser(new FormData(event.target));
-    event.target.reset();
-  });
+  if (elements.loginForm) {
+    elements.loginForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      loginUser(new FormData(event.target));
+      event.target.reset();
+    });
+  }
 
-  elements.registerForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    registerUser(new FormData(event.target));
-    event.target.reset();
-  });
+  if (elements.registerForm) {
+    elements.registerForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      registerUser(new FormData(event.target));
+      event.target.reset();
+    });
+  }
 
-  elements.logoutBtn.addEventListener("click", () => logoutUser());
+  if (elements.logoutBtn) {
+    elements.logoutBtn.addEventListener("click", () => logoutUser());
+  }
 
-  elements.callForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    if (!state.session) {
-      showToast("Please sign in to create calls.");
-      return;
-    }
-    addCall(new FormData(event.target));
-    event.target.reset();
-  });
+  if (elements.callForm) {
+    elements.callForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (!state.session) {
+        showToast("Please sign in to create calls.");
+        return;
+      }
+      addCall(new FormData(event.target));
+      event.target.reset();
+    });
+  }
 
-  elements.unitForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    if (!state.session) {
-      showToast("Please sign in to add units.");
-      return;
-    }
-    addUnit(new FormData(event.target));
-    event.target.reset();
-  });
+  if (elements.unitForm) {
+    elements.unitForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (!state.session) {
+        showToast("Please sign in to add units.");
+        return;
+      }
+      addUnit(new FormData(event.target));
+      event.target.reset();
+    });
+  }
 
-  elements.callsTable.addEventListener("click", handleCallTableClick);
-  elements.callsTable.addEventListener("change", handleAssignSelect);
-  elements.editCallForm.addEventListener("submit", saveCallUpdates);
-  elements.closeModalBtn.addEventListener("click", closeEditModal);
-  elements.cancelModalBtn.addEventListener("click", closeEditModal);
-  elements.editModal.addEventListener("click", (event) => {
-    if (event.target === elements.editModal) {
-      closeEditModal();
-    }
-  });
-  elements.startTimerBtn.addEventListener("click", startTimer);
-  elements.pauseTimerBtn.addEventListener("click", pauseTimer);
-  elements.resetTimerBtn.addEventListener("click", resetTimer);
-  elements.sceneForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    addScene(new FormData(event.target));
-    event.target.reset();
-  });
-  elements.sceneList.addEventListener("click", (event) => {
-    const sceneId = event.target.getAttribute("data-scene");
-    if (sceneId) {
-      activateScene(sceneId);
-    }
-  });
-  elements.logStatusBtn.addEventListener("click", () => {
-    if (!state.session) {
-      showToast("Please sign in to log status.");
-      return;
-    }
-    logActivity(`Dispatcher status check logged by ${state.session.displayName}.`);
-    showToast("Status check logged.");
-  });
-  elements.clearLogBtn.addEventListener("click", clearLogs);
-  elements.seedCallBtn.addEventListener("click", seedDemoCall);
-  elements.settingsForm.addEventListener("submit", saveSettings);
+  if (elements.callsTable) {
+    elements.callsTable.addEventListener("click", handleCallTableClick);
+    elements.callsTable.addEventListener("change", handleAssignSelect);
+  }
+
+  if (elements.editCallForm) {
+    elements.editCallForm.addEventListener("submit", saveCallUpdates);
+  }
+
+  if (elements.closeModalBtn) {
+    elements.closeModalBtn.addEventListener("click", closeEditModal);
+  }
+
+  if (elements.cancelModalBtn) {
+    elements.cancelModalBtn.addEventListener("click", closeEditModal);
+  }
+
+  if (elements.editModal) {
+    elements.editModal.addEventListener("click", (event) => {
+      if (event.target === elements.editModal) {
+        closeEditModal();
+      }
+    });
+  }
+
+  if (elements.startTimerBtn) {
+    elements.startTimerBtn.addEventListener("click", startTimer);
+  }
+
+  if (elements.pauseTimerBtn) {
+    elements.pauseTimerBtn.addEventListener("click", pauseTimer);
+  }
+
+  if (elements.resetTimerBtn) {
+    elements.resetTimerBtn.addEventListener("click", resetTimer);
+  }
+
+  if (elements.sceneForm) {
+    elements.sceneForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      addScene(new FormData(event.target));
+      event.target.reset();
+    });
+  }
+
+  if (elements.sceneList) {
+    elements.sceneList.addEventListener("click", (event) => {
+      const sceneId = event.target.getAttribute("data-scene");
+      if (sceneId) {
+        activateScene(sceneId);
+      }
+    });
+  }
+
+  if (elements.logStatusBtn) {
+    elements.logStatusBtn.addEventListener("click", () => {
+      if (!state.session) {
+        showToast("Please sign in to log status.");
+        return;
+      }
+      logActivity(`Dispatcher status check logged by ${state.session.displayName}.`);
+      showToast("Status check logged.");
+    });
+  }
+
+  if (elements.clearLogBtn) {
+    elements.clearLogBtn.addEventListener("click", clearLogs);
+  }
+
+  if (elements.seedCallBtn) {
+    elements.seedCallBtn.addEventListener("click", seedDemoCall);
+  }
+
+  if (elements.settingsForm) {
+    elements.settingsForm.addEventListener("submit", saveSettings);
+  }
+
+  if (elements.announcementForm) {
+    elements.announcementForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      addAnnouncement(new FormData(event.target));
+      event.target.reset();
+    });
+  }
+
+  if (elements.announcementList) {
+    elements.announcementList.addEventListener("click", (event) => {
+      const announcementId = event.target.getAttribute("data-announcement");
+      if (announcementId) {
+        acknowledgeAnnouncement(announcementId);
+      }
+    });
+  }
 };
 
 initialize();

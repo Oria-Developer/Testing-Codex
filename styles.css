@@ -28,6 +28,10 @@ body {
   padding: 24px;
 }
 
+.home {
+  animation: fadeIn 0.6s ease-in-out;
+}
+
 .topbar {
   display: flex;
   justify-content: space-between;
@@ -40,6 +44,12 @@ body {
 .topbar h1 {
   margin: 0;
   font-size: 1.8rem;
+}
+
+.nav-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .subtitle {
@@ -94,10 +104,74 @@ button.ghost {
   border: 1px solid var(--border);
 }
 
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: var(--text);
+  text-decoration: none;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.button:hover {
+  background: var(--accent-soft);
+  transform: translateY(-1px);
+}
+
+a.ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+  text-decoration: none;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
 main {
   display: flex;
   flex-direction: column;
   gap: 24px;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px;
+  align-items: center;
+}
+
+.hero-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hero-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.feature-grid,
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.feature-card {
+  background: var(--panel-light);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
 }
 
 .auth {
@@ -139,6 +213,23 @@ main {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  animation: slideUp 0.5s ease;
+}
+
+.collapsible .panel-header {
+  align-items: center;
+}
+
+.panel-body {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.35s ease, opacity 0.35s ease;
+}
+
+.panel-body.open {
+  max-height: 2000px;
+  opacity: 1;
 }
 
 .toolbar {
@@ -181,6 +272,13 @@ main {
 .panel-header p {
   margin: 4px 0 0;
   color: var(--muted);
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
 }
 
 .grid {
@@ -405,6 +503,28 @@ select:focus {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(6px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @media (max-width: 900px) {
