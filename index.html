@@ -58,6 +58,47 @@
         </div>
       </section>
 
+      <section class="panel toolbar" id="toolbarSection">
+        <div class="panel-header">
+          <h2>Dispatch Toolbar</h2>
+          <p>Timers, scenes, and quick actions for live roleplay.</p>
+        </div>
+        <div class="toolbar-grid">
+          <div class="toolbar-card">
+            <h3>Scene Timer</h3>
+            <div class="timer-display" id="sceneTimerDisplay">00:00</div>
+            <div class="actions">
+              <button type="button" id="startTimerBtn">Start</button>
+              <button type="button" class="ghost" id="pauseTimerBtn">Pause</button>
+              <button type="button" class="ghost" id="resetTimerBtn">Reset</button>
+            </div>
+          </div>
+          <div class="toolbar-card">
+            <h3>Scene Presets</h3>
+            <form id="sceneForm" class="stack">
+              <label>
+                Scene Name
+                <input type="text" name="sceneName" required />
+              </label>
+              <label>
+                Notes
+                <input type="text" name="sceneNotes" required />
+              </label>
+              <button type="submit">Add Scene</button>
+            </form>
+            <div class="list" id="sceneList"></div>
+          </div>
+          <div class="toolbar-card">
+            <h3>Quick Actions</h3>
+            <div class="quick-actions">
+              <button type="button" id="logStatusBtn">Log Status Check</button>
+              <button type="button" class="ghost" id="clearLogBtn">Clear Activity Log</button>
+              <button type="button" class="ghost" id="seedCallBtn">Seed Demo Call</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="dashboard" id="dashboardSection">
         <div class="cards">
           <div class="card stat">
@@ -147,6 +188,32 @@
             <p>Every action recorded for quick reference.</p>
           </div>
           <div class="log" id="activityLog"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Settings</h2>
+            <p>Customize priorities, notifications, and log retention.</p>
+          </div>
+          <form id="settingsForm" class="stack">
+            <label>
+              Default Priority
+              <select name="defaultPriority" required>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            </label>
+            <label>
+              Activity Log Limit
+              <input type="number" name="logLimit" min="10" max="200" required />
+            </label>
+            <label class="toggle">
+              <input type="checkbox" name="toastEnabled" />
+              <span>Enable toast notifications</span>
+            </label>
+            <button type="submit">Save Settings</button>
+          </form>
         </section>
 
         <footer class="footer">

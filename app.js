@@ -3,7 +3,9 @@ const STORAGE_KEYS = {
   session: "pp_session",
   calls: "pp_calls",
   units: "pp_units",
-  logs: "pp_logs"
+  logs: "pp_logs",
+  settings: "pp_settings",
+  scenes: "pp_scenes"
 };
 
 const elements = {
@@ -26,7 +28,17 @@ const elements = {
   editModal: document.getElementById("editModal"),
   editCallForm: document.getElementById("editCallForm"),
   closeModalBtn: document.getElementById("closeModalBtn"),
-  cancelModalBtn: document.getElementById("cancelModalBtn")
+  cancelModalBtn: document.getElementById("cancelModalBtn"),
+  startTimerBtn: document.getElementById("startTimerBtn"),
+  pauseTimerBtn: document.getElementById("pauseTimerBtn"),
+  resetTimerBtn: document.getElementById("resetTimerBtn"),
+  sceneTimerDisplay: document.getElementById("sceneTimerDisplay"),
+  sceneForm: document.getElementById("sceneForm"),
+  sceneList: document.getElementById("sceneList"),
+  logStatusBtn: document.getElementById("logStatusBtn"),
+  clearLogBtn: document.getElementById("clearLogBtn"),
+  seedCallBtn: document.getElementById("seedCallBtn"),
+  settingsForm: document.getElementById("settingsForm")
 };
 
 const state = {
@@ -35,7 +47,18 @@ const state = {
   calls: [],
   units: [],
   logs: [],
-  editCallId: null
+  editCallId: null,
+  settings: {
+    defaultPriority: "High",
+    logLimit: 50,
+    toastEnabled: true
+  },
+  scenes: [],
+  timer: {
+    seconds: 0,
+    running: false,
+    intervalId: null
+  }
 };
 
 const loadData = () => {
@@ -58,6 +81,20 @@ const loadData = () => {
   if (!state.logs || state.logs.length === 0) {
     state.logs = [];
     persist("logs");
+  }
+
+  if (!state.settings) {
+    state.settings = {
+      defaultPriority: "High",
+      logLimit: 50,
+      toastEnabled: true
+    };
+    persist("settings");
+  }
+
+  if (!state.scenes) {
+    state.scenes = [];
+    persist("scenes");
   }
 
   if (state.session) {
@@ -100,12 +137,15 @@ const logActivity = (message, meta = {}) => {
     ...meta
   };
   state.logs.unshift(entry);
-  state.logs = state.logs.slice(0, 50);
+  state.logs = state.logs.slice(0, state.settings.logLimit);
   persist("logs");
   renderLogs();
 };
 
 const showToast = (message) => {
+  if (!state.settings.toastEnabled) {
+    return;
+  }
   elements.toast.textContent = message;
   elements.toast.classList.add("show");
   setTimeout(() => {
@@ -260,6 +300,9 @@ const renderAll = () => {
   renderCalls();
   renderUnits();
   renderLogs();
+  renderScenes();
+  renderSettings();
+  renderTimer();
 };
 
 const registerUser = (formData) => {
@@ -315,7 +358,10 @@ const logoutUser = () => {
 
 const addCall = (formData) => {
   const payload = Object.fromEntries(formData.entries());
-  const call = createCall(payload);
+  const call = createCall({
+    ...payload,
+    priority: payload.priority || state.settings.defaultPriority
+  });
   state.calls.unshift(call);
   persist("calls");
   renderAll();
@@ -379,6 +425,133 @@ const assignUnitToCall = (callId, unitId) => {
   renderAll();
   logActivity(`${unit.name} assigned to ${call.type} at ${call.location}.`);
   showToast("Unit assigned.");
+};
+
+const renderScenes = () => {
+  if (!state.scenes.length) {
+    elements.sceneList.innerHTML = "<div class=\"helper\">No scenes saved yet.</div>";
+    return;
+  }
+
+  elements.sceneList.innerHTML = state.scenes
+    .map(
+      (scene) => `
+      <div class="unit">
+        <div>
+          <strong>${scene.name}</strong>
+          <span>${scene.notes}</span>
+        </div>
+        <button type="button" class="ghost" data-scene="${scene.id}">Activate</button>
+      </div>
+    `
+    )
+    .join("");
+};
+
+const renderSettings = () => {
+  if (!elements.settingsForm) {
+    return;
+  }
+  elements.settingsForm.defaultPriority.value = state.settings.defaultPriority;
+  elements.settingsForm.logLimit.value = state.settings.logLimit;
+  elements.settingsForm.toastEnabled.checked = state.settings.toastEnabled;
+  if (elements.callForm) {
+    elements.callForm.priority.value = state.settings.defaultPriority;
+  }
+};
+
+const renderTimer = () => {
+  const minutes = String(Math.floor(state.timer.seconds / 60)).padStart(2, "0");
+  const seconds = String(state.timer.seconds % 60).padStart(2, "0");
+  elements.sceneTimerDisplay.textContent = `${minutes}:${seconds}`;
+  elements.startTimerBtn.disabled = state.timer.running;
+  elements.pauseTimerBtn.disabled = !state.timer.running;
+};
+
+const startTimer = () => {
+  if (state.timer.running) {
+    return;
+  }
+  state.timer.running = true;
+  state.timer.intervalId = window.setInterval(() => {
+    state.timer.seconds += 1;
+    renderTimer();
+  }, 1000);
+  renderTimer();
+};
+
+const pauseTimer = () => {
+  if (!state.timer.running) {
+    return;
+  }
+  state.timer.running = false;
+  window.clearInterval(state.timer.intervalId);
+  state.timer.intervalId = null;
+  renderTimer();
+};
+
+const resetTimer = () => {
+  pauseTimer();
+  state.timer.seconds = 0;
+  renderTimer();
+};
+
+const addScene = (formData) => {
+  const payload = Object.fromEntries(formData.entries());
+  const scene = {
+    id: createId(),
+    name: payload.sceneName,
+    notes: payload.sceneNotes
+  };
+  state.scenes.unshift(scene);
+  persist("scenes");
+  renderScenes();
+  logActivity(`Scene preset added: ${scene.name}.`);
+  showToast("Scene added.");
+};
+
+const activateScene = (sceneId) => {
+  const scene = state.scenes.find((item) => item.id === sceneId);
+  if (!scene) {
+    return;
+  }
+  logActivity(`Scene activated: ${scene.name}. Notes: ${scene.notes}`);
+  showToast("Scene activated.");
+};
+
+const saveSettings = (event) => {
+  event.preventDefault();
+  const payload = Object.fromEntries(new FormData(elements.settingsForm).entries());
+  state.settings = {
+    defaultPriority: payload.defaultPriority,
+    logLimit: Number(payload.logLimit),
+    toastEnabled: payload.toastEnabled === "on"
+  };
+  persist("settings");
+  renderAll();
+  showToast("Settings saved.");
+};
+
+const clearLogs = () => {
+  state.logs = [];
+  persist("logs");
+  renderLogs();
+  showToast("Activity log cleared.");
+};
+
+const seedDemoCall = () => {
+  const call = createCall({
+    location: "101 Ocean Ave",
+    type: "Disturbance",
+    priority: state.settings.defaultPriority,
+    description: "Reported loud argument in progress."
+  });
+  state.calls.unshift(call);
+  persist("calls");
+  renderCalls();
+  renderStats();
+  logActivity("Demo call seeded by dispatcher.");
+  showToast("Demo call created.");
 };
 
 const saveCallUpdates = (event) => {
@@ -478,6 +651,31 @@ const initialize = () => {
       closeEditModal();
     }
   });
+  elements.startTimerBtn.addEventListener("click", startTimer);
+  elements.pauseTimerBtn.addEventListener("click", pauseTimer);
+  elements.resetTimerBtn.addEventListener("click", resetTimer);
+  elements.sceneForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    addScene(new FormData(event.target));
+    event.target.reset();
+  });
+  elements.sceneList.addEventListener("click", (event) => {
+    const sceneId = event.target.getAttribute("data-scene");
+    if (sceneId) {
+      activateScene(sceneId);
+    }
+  });
+  elements.logStatusBtn.addEventListener("click", () => {
+    if (!state.session) {
+      showToast("Please sign in to log status.");
+      return;
+    }
+    logActivity(`Dispatcher status check logged by ${state.session.displayName}.`);
+    showToast("Status check logged.");
+  });
+  elements.clearLogBtn.addEventListener("click", clearLogs);
+  elements.seedCallBtn.addEventListener("click", seedDemoCall);
+  elements.settingsForm.addEventListener("submit", saveSettings);
 };
 
 initialize();
