@@ -20,23 +20,18 @@
       </div>
       <div class="session" id="sessionInfo">
         <span class="session-user" id="sessionUser">Not signed in</span>
-        <button class="ghost" id="logoutBtn" type="button">Sign out</button>
+        <button class="ghost" id="logoutBtn" type="button">Login</button>
       </div>
     </header>
 
     <main>
-      <section class="panel collapsible" data-panel="auth" data-default-open="true">
-        <div class="panel-header">
-          <div>
-            <h2>Dispatcher Access</h2>
-            <p>Sign in or create a dispatcher profile.</p>
-          </div>
-          <button class="ghost toggle-btn" type="button" data-collapse="auth">Close</button>
-        </div>
-        <div class="panel-body" id="panel-auth">
-          <div class="lock-banner">
-            <strong>Access Restricted</strong>
-            <span>Sign in to unlock the full CAD console.</span>
+      <section class="auth-overlay" id="authOverlay" aria-live="polite">
+        <div class="auth-shell">
+          <div class="panel-header">
+            <div>
+              <h2>Dispatcher Access Required</h2>
+              <p>Sign in to unlock the CAD and start a server roleplay session.</p>
+            </div>
           </div>
           <section class="auth" id="authSection">
             <div class="card auth-card">
@@ -77,41 +72,8 @@
         </div>
       </section>
 
-      <section class="panel collapsible" data-panel="session" data-default-open="true">
-        <div class="panel-header">
-          <div>
-            <h2>Session Controls</h2>
-            <p>Select your roleplay server and manage session history.</p>
-          </div>
-          <button class="ghost toggle-btn" type="button" data-collapse="session">Close</button>
-        </div>
-        <div class="panel-body" id="panel-session">
-          <div class="session-controls">
-            <div class="session-card">
-              <h3>Roleplay Server</h3>
-              <label>
-                Active Server
-                <select id="serverSelect"></select>
-              </label>
-              <form id="serverForm" class="stack">
-                <label>
-                  Add New Server
-                  <input type="text" name="serverName" placeholder="Citywide RP" required />
-                </label>
-                <button type="submit">Add Server</button>
-              </form>
-            </div>
-            <div class="session-card">
-              <h3>Session Timeline</h3>
-              <p><strong>Current Session:</strong> <span id="sessionTimer">00:00:00</span></p>
-              <p><strong>Last Session:</strong> <span id="lastSessionInfo">None yet</span></p>
-              <button type="button" class="ghost" id="importSessionBtn">Import Last Session</button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel toolbar collapsible" data-panel="toolbar">
+      <div id="cadContent">
+        <section class="panel toolbar collapsible" data-panel="toolbar">
         <div class="panel-header">
           <div>
             <h2>Dispatch Toolbar</h2>
@@ -122,7 +84,7 @@
         <div class="panel-body" id="panel-toolbar">
           <div class="toolbar-lock" id="toolbarLock">
             <p>Sign in to unlock dispatch toolbar tools.</p>
-            <button type="button" class="ghost" data-collapse="auth">Open Dispatcher Access</button>
+            <button type="button" class="ghost" data-collapse="auth">Login</button>
           </div>
           <div class="toolbar-grid">
             <div class="toolbar-card">
@@ -187,6 +149,42 @@
               <h3>Dispatchers Online</h3>
               <p id="dispatchersOnline">1</p>
             </div>
+            <div class="card stat">
+              <h3>Active Session</h3>
+              <p id="sessionServerName">No session</p>
+              <small id="sessionStartTime">Start a server session to track time.</small>
+              <small id="sessionDuration"></small>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel collapsible" data-panel="session">
+        <div class="panel-header">
+          <div>
+            <h2>Session Control</h2>
+            <p>Select a server, track time on duty, and import the last session.</p>
+          </div>
+          <button class="ghost toggle-btn" type="button" data-collapse="session">Open</button>
+        </div>
+        <div class="panel-body" id="panel-session">
+          <form id="sessionForm" class="stack">
+            <label>
+              Server
+              <select id="serverSelect" name="server"></select>
+            </label>
+            <label>
+              Add New Server
+              <input type="text" id="serverNameInput" name="serverName" placeholder="Server Alpha RP" />
+            </label>
+            <div class="actions">
+              <button type="button" class="ghost" id="addServerBtn">Add Server</button>
+              <button type="submit" id="startSessionBtn">Start Session</button>
+            </div>
+          </form>
+          <div class="session-meta">
+            <p id="lastSessionInfo">No previous session found.</p>
+            <button type="button" class="ghost" id="importSessionBtn">Import Last Session</button>
           </div>
         </div>
       </section>
@@ -307,6 +305,96 @@
           </div>
         </section>
 
+        <section class="panel collapsible" data-panel="bolos">
+          <div class="panel-header">
+            <div>
+              <h2>BOLO Board</h2>
+              <p>Active be-on-the-lookout alerts for units.</p>
+            </div>
+            <button class="ghost toggle-btn" type="button" data-collapse="bolos">Open</button>
+          </div>
+          <div class="panel-body" id="panel-bolos">
+            <div class="card">
+              <p class="helper">Create BOLO alerts to highlight suspects, vehicles, or locations.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel collapsible" data-panel="warrants">
+          <div class="panel-header">
+            <div>
+              <h2>Warrants</h2>
+              <p>Track outstanding warrants and served records.</p>
+            </div>
+            <button class="ghost toggle-btn" type="button" data-collapse="warrants">Open</button>
+          </div>
+          <div class="panel-body" id="panel-warrants">
+            <div class="card">
+              <p class="helper">Log active warrants and update served status after verification.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel collapsible" data-panel="roster">
+          <div class="panel-header">
+            <div>
+              <h2>Unit Roster</h2>
+              <p>Quick lookup of available officers, fire, and EMS personnel.</p>
+            </div>
+            <button class="ghost toggle-btn" type="button" data-collapse="roster">Open</button>
+          </div>
+          <div class="panel-body" id="panel-roster">
+            <div class="card">
+              <p class="helper">Maintain call signs, duty status, and shift notes in one place.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel collapsible" data-panel="vehicles">
+          <div class="panel-header">
+            <div>
+              <h2>Vehicle Registry</h2>
+              <p>Reference plates, models, and ownership notes.</p>
+            </div>
+            <button class="ghost toggle-btn" type="button" data-collapse="vehicles">Open</button>
+          </div>
+          <div class="panel-body" id="panel-vehicles">
+            <div class="card">
+              <p class="helper">Store vehicle descriptions to support traffic stops and alerts.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel collapsible" data-panel="persons">
+          <div class="panel-header">
+            <div>
+              <h2>Persons of Interest</h2>
+              <p>Capture contact details, aliases, and caution flags.</p>
+            </div>
+            <button class="ghost toggle-btn" type="button" data-collapse="persons">Open</button>
+          </div>
+          <div class="panel-body" id="panel-persons">
+            <div class="card">
+              <p class="helper">Track individuals tied to active investigations or pending follow-up.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel collapsible" data-panel="radio">
+          <div class="panel-header">
+            <div>
+              <h2>Radio Log</h2>
+              <p>Keep a rolling transcript of radio traffic.</p>
+            </div>
+            <button class="ghost toggle-btn" type="button" data-collapse="radio">Open</button>
+          </div>
+          <div class="panel-body" id="panel-radio">
+            <div class="card">
+              <p class="helper">Log priority broadcasts, unit acknowledgements, and clearances.</p>
+            </div>
+          </div>
+        </section>
+
         <section class="panel collapsible" data-panel="settings">
           <div class="panel-header">
             <div>
@@ -342,6 +430,7 @@
           <span>PulsePoint 911 Roleplay Console • Version 1 • Offline-ready</span>
         </footer>
       </section>
+      </div>
     </main>
   </div>
 
